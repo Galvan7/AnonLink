@@ -2,27 +2,29 @@ import { log } from "console";
 import mongoose, { ConnectOptions } from "mongoose";
 
 type ConnectionObject = {
-    isConnected?:number
+    isConnected?: number
 
 }
 
-const connection:ConnectionObject = {}
+const connection: ConnectionObject = {}
 
 async function dbConnect(): Promise<void> {
-    if(connection.isConnected){
+    if (connection.isConnected) {
         console.log("Already connection to db");
         return
     }
 
-    try{
-        const db = await mongoose.connect(process.env.MONGODBURI || "",{})
-        connection.isConnected= db.connections[0].readyState
+    try {
+        console.log("Connecting to MongoDB with URI:", process.env.MONGODBURI);
+        const db = await mongoose.connect(process.env.MONGODBURI || "", {})
+        connection.isConnected = db.connections[0].readyState
         console.log("Db connected successfully");
     }
-    catch(error){
-        console.log("Database connection failed");
-        process.exit()
+    catch (error) {
+        console.log("Database connection failed:", error);
+        process.exit();
     }
+
 }
 // const dbConnect = async (): Promise<void> => {
 //   if (connection.isConnected) {
