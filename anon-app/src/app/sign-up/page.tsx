@@ -8,7 +8,6 @@ import { useDebounce } from "@uidotdev/usehooks";
 import axios from "axios";
 import Link from "next/link";
 import { toast } from "sonner";
-
 import { signUpSchema, type SignUpSchema } from "@/schemas/signUpSchema";
 
 import { Input } from "@/components/ui/input";
@@ -27,6 +26,7 @@ export default function SignUpPage() {
     const form = useForm<SignUpSchema>({
         resolver: zodResolver(signUpSchema),
         defaultValues: { userName: "", email: "", password: "" },
+        mode:"onTouched"
     });
 
     const username = form.watch("userName");
