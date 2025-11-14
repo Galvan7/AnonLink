@@ -26,7 +26,7 @@ export default function SignUpPage() {
     const form = useForm<SignUpSchema>({
         resolver: zodResolver(signUpSchema),
         defaultValues: { userName: "", email: "", password: "" },
-        mode:"onTouched"
+        mode: "onTouched"
     });
 
     const username = form.watch("userName");
@@ -36,7 +36,7 @@ export default function SignUpPage() {
     useEffect(() => {
         setUsernameStatus(null);
         setCheckingUsername(false);
-        setUsernameServerErrors([]);  
+        setUsernameServerErrors([]);
         if (!debouncedUsername || debouncedUsername.length < 2) return;
         const check = async () => {
             setCheckingUsername(true);
@@ -44,14 +44,13 @@ export default function SignUpPage() {
                 const { data } = await axios.get(
                     `/api/check-username?username=${encodeURIComponent(debouncedUsername)}`
                 );
-
                 setUsernameStatus(data.available ? "available" : "taken");
-            } catch (err: any) {
+            } catch (err: unknown) {
                 if (axios.isAxiosError(err) && err.response?.data) {
                     const payload = err.response.data;
                     if (Array.isArray(payload.message)) {
                         setUsernameServerErrors(payload.message);
-                        setUsernameStatus("taken");      
+                        setUsernameStatus("taken");
                     }
                     else if (payload.message) {
                         setUsernameServerErrors([payload.message]);
@@ -72,24 +71,21 @@ export default function SignUpPage() {
         check();
     }, [debouncedUsername]);
 
-    
+
     async function onSubmit(values: SignUpSchema) {
         toast.info("Creating your anonymous identity...");
-
         try {
             const res = await axios.post("/api/sign-up", {
                 username: values.userName,
                 email: values.email,
                 password: values.password,
             });
-
             if (!res.data.success) {
                 toast.error(res.data.message);
                 return;
             }
-
             toast.success("Account created — check your email to verify.");
-            router.push(`/verify?email=${values.email}`);
+            router.push(`/verify?token=${res.data.token}`);
         } catch {
             toast.error("Something went wrong. Try again.");
         }
@@ -124,6 +120,9 @@ export default function SignUpPage() {
                             ) : usernameStatus === "taken" ? (
                                 <XCircleIcon className="h-5 w-5 text-red-600 absolute right-3 top-2.5" />
                             ) : null}
+                            {usernameStatus === "taken" && usernameServerErrors.length === 0 && (
+                                <p className="text-sm ml-2 mt-1 text-red-500">Username already taken</p>
+                            )}
                         </div>
 
                         {form.formState.errors.userName?.message ? (

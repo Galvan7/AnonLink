@@ -1,77 +1,78 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import userModel from "@/model/User";
+import jwt from "jsonwebtoken";
 import { z } from "zod";
 
-
-const VerifyOTPSchema = z.object({
-  username: z.string(),
-  code: z
-    .string()
-    .min(4, "Code must be at least 4 digits")
-    .max(8, "Code must be less than 8 digits"),
+const VerifySchema = z.object({
+  token: z.string(),
+  code: z.string().length(6, "Verification code must be 6 digits")
 });
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const parsed = VerifyOTPSchema.safeParse(body);
+    const parsed = VerifySchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Internal security breach",
-        },
+        { success: false, message: "Invalid request" },
         { status: 400 }
       );
     }
-
-    const { username, code } = parsed.data;
+    const { token, code } = parsed.data;
+    const decoded = jwt.verify(
+      token,
+      process.env.NEXT_AUTH_SECRET!
+    ) as { username: string };
     await dbConnect();
-    const user = await userModel.findOne({ userName:username });
-
-    if (!user) {
+    const allUsers = await userModel.find({ userName: decoded.username });
+    if (!allUsers || allUsers.length === 0) {
       return NextResponse.json(
         { success: false, message: "User not found" },
         { status: 404 }
       );
     }
-
-    if (user.isVerified) {
-      return NextResponse.json(
-        { success: true, message: "User already verified" },
-        { status: 200 }
-      );
+    const verifiedUser = allUsers.find(u => u.isVerified === true);
+    if (verifiedUser) {
+      await userModel.deleteMany({
+        userName: decoded.username,
+        isVerified: false
+      });
+      return NextResponse.json({
+        success: true,
+        message: "Already verified"
+      });
     }
-
-    if (user.verifyCode !== code) {
+    const targetUser = allUsers.find(u => u.verifyCode === code);
+    if (!targetUser) {
       return NextResponse.json(
         { success: false, message: "Invalid verification code" },
         { status: 400 }
       );
     }
-
-    if (new Date(user.verifyCodeExpiry) < new Date()) {
+    if (new Date(targetUser.verifyCodeExpiry) < new Date()) {
       return NextResponse.json(
-        { success: false, message: "Verification code has expired" },
+        { success: false, message: "Code expired" },
         { status: 400 }
       );
     }
-
-    // Mark user as verified
-    user.isVerified = true;
-    user.verifyCode = "";
-    user.verifyCodeExpiry = new Date(0);
-    await user.save();
-
+    targetUser.isVerified = true;
+    targetUser.verifyCode = "";
+    targetUser.verifyCodeExpiry = new Date(0);
+    await targetUser.save();
+    await userModel.deleteMany({
+      userName: decoded.username,
+      _id: { $ne: targetUser._id }
+    });
     return NextResponse.json({
       success: true,
-      message: "Email verified successfully",
+      message: "Email verified successfully"
     });
+
   } catch (error) {
-    console.error("Error verifying OTP:", error);
+    console.error("Verify Error:", error);
     return NextResponse.json(
-      { success: false, message: "Internal server error" },
+      { success: false, message: "Server error" },
       { status: 500 }
     );
   }

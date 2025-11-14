@@ -2,6 +2,7 @@ import dbConnect from "@/lib/dbConnect";
 import userModel from "@/model/User";
 import bcrypt from "bcryptjs";
 import { sendVerificationEmail } from "@/helpers/sendVerificationEmail";
+import jwt from "jsonwebtoken"
 
 export async function POST(req: Request) {
     await dbConnect()
@@ -57,8 +58,13 @@ export async function POST(req: Request) {
             })
             await newUser.save()
         }
-
+        const verifyToken = jwt.sign(
+            { username },
+            process.env.NEXT_AUTH_SECRET!, 
+            { expiresIn: "15m" }
+        );
         const emailResponse = await sendVerificationEmail(email, username, otp)
+        // console.log("Email response is ", emailResponse)
         if (!emailResponse.success) {
             return Response.json({
                 success: false,
@@ -67,7 +73,8 @@ export async function POST(req: Request) {
         }
         return Response.json({
             success: true,
-            message: "User registered, Please verify your email"
+            message: "User registered, Please verify your email",
+            token:verifyToken,
         }, { status: 200 })
 
     }
