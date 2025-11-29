@@ -77,7 +77,7 @@ export default function DashboardPage() {
 
   async function deleteMessage(id: string) {
     try {
-      console.log("Deleted id is ",id)
+      console.log("Deleted id is ", id)
       await axios.delete(`/api/delete-message/${id}`);
       setMessages((prev) => prev.filter((m) => m._id !== id));
       toast.success("Message deleted");
@@ -115,15 +115,16 @@ export default function DashboardPage() {
             <CardTitle>Your Public Link</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between bg-neutral-100 dark:bg-neutral-800 rounded-lg px-4 py-3">
-              <div className="flex items-center gap-2">
-                <LinkIcon className="h-4 w-4 text-neutral-500" />
-                <span className="font-mono text-sm">{publicLink}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-neutral-100 dark:bg-neutral-800 rounded-lg px-4 py-3">
+              <div className="flex items-center gap-2 w-full break-all">
+                <LinkIcon className="h-4 w-4 text-neutral-500 shrink-0" />
+                <span className="font-mono text-sm break-all">{publicLink}</span>
               </div>
 
               <Button
                 size="sm"
                 variant="outline"
+                className="w-full sm:w-auto"
                 onClick={() => {
                   navigator.clipboard.writeText(publicLink);
                   toast.success("Link copied!");
@@ -132,6 +133,7 @@ export default function DashboardPage() {
                 Copy
               </Button>
             </div>
+
           </CardContent>
         </Card>
 
