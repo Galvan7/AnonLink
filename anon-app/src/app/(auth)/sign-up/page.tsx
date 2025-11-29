@@ -22,6 +22,7 @@ export default function SignUpPage() {
     const [checkingUsername, setCheckingUsername] = useState(false);
     const [usernameStatus, setUsernameStatus] = useState<null | "available" | "taken">(null);
     const [usernameServerErrors, setUsernameServerErrors] = useState<string[]>([]);
+    const [loading, setLoading] = useState(false);
 
     const form = useForm<SignUpSchema>({
         resolver: zodResolver(signUpSchema),
@@ -73,23 +74,30 @@ export default function SignUpPage() {
 
 
     async function onSubmit(values: SignUpSchema) {
+        setLoading(true);
         toast.info("Creating your anonymous identity...");
+
         try {
             const res = await axios.post("/api/sign-up", {
                 username: values.userName,
                 email: values.email,
                 password: values.password,
             });
+
             if (!res.data.success) {
                 toast.error(res.data.message);
                 return;
             }
+
             toast.success("Account created — check your email to verify.");
             router.push(`/verify?token=${res.data.token}`);
         } catch {
             toast.error("Something went wrong. Try again.");
+        } finally {
+            setLoading(false);
         }
     }
+
 
     return (
         <div className="min-h-screen flex items-center justify-center px-4 bg-neutral-50 dark:bg-neutral-900">
@@ -154,9 +162,20 @@ export default function SignUpPage() {
                         )}
                     </div>
 
-                    <Button className="w-full bg-black text-white hover:bg-neutral-800 transition" type="submit">
-                        Create Account
+                    <Button
+                        disabled={loading}
+                        type="submit"
+                        className="w-full relative bg-black text-white hover:bg-neutral-800"
+                    >
+                        <span className={loading ? "opacity-0" : "opacity-100"}>
+                            Create Account
+                        </span>
+
+                        {loading && (
+                            <Loader2 className="h-5 w-5 absolute inset-0 m-auto animate-spin" />
+                        )}
                     </Button>
+
                 </form>
 
                 <p className="text-sm text-center mt-5 text-neutral-600 dark:text-neutral-400">
